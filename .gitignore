@@ -1,0 +1,12 @@
+node_modules/
+*.log
+.sites-runtime/
+.sites-checkout/
+test-results/
+release/
+.openai/
+.sites-checkout-*/
+*.tar.gz
+src-tauri/target/
+src-tauri/gen/
+.tools/

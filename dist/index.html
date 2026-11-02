@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src ipc: http://ipc.localhost; frame-src 'self' blob:; base-uri 'none'; form-action 'none'">
+  <meta name="description" content="書いて、選んで、色を付ける。MarkdownとHTMLに対応した、かんたんなドキュメントエディタ。">
+  <title>NIKO Editor — かんたんに、気持ちよく書く。</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="vendor/marked.js"></script>
+  <script defer src="vendor/purify.js"></script>
+  <script defer src="vendor/turndown.js"></script>
+  <script defer src="vendor/turndown-plugin-gfm.js"></script>
+  <script defer src="editor-core.js"></script>
+  <script defer src="desktop.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 8V5a1 1 0 0 1 1-1h6l2 3h8a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8Z"/><path d="M3 10h18"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 5 4 10l5 5M4 10h10a6 6 0 0 1 0 12" transform="translate(0 -2)"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 5 5 5-5 5m5-5H10a6 6 0 0 0 0 12" transform="translate(0 -2)"/></symbol>
+    <symbol id="i-bold" viewBox="0 0 24 24"><path d="M6 4h7a4 4 0 0 1 0 8H6zm0 8h8a4 4 0 0 1 0 8H6z" stroke-width="2.5"/></symbol>
+    <symbol id="i-italic" viewBox="0 0 24 24"><path d="M10 4h9M5 20h9M15 4 9 20"/></symbol>
+    <symbol id="i-under" viewBox="0 0 24 24"><path d="M6 3v8a6 6 0 0 0 12 0V3M4 21h16"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="3" cy="6" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="3" cy="18" r="1"/></symbol>
+    <symbol id="i-ordered" viewBox="0 0 24 24"><path d="M10 6h11M10 12h11M10 18h11M3 4h1v5M3 13c3-2 4 1 1 3l-1 2h3"/></symbol>
+    <symbol id="i-quote" viewBox="0 0 24 24"><path d="M4 5h6v7H4zm10 0h6v7h-6zM10 12c0 5-2 6-5 7m15-7c0 5-2 6-5 7"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="m10 13 4-4m-6 6-1 1a4.3 4.3 0 0 1-6-6l4-4a4.3 4.3 0 0 1 6 0m2 2 1-1a4.3 4.3 0 0 1 6 6l-4 4a4.3 4.3 0 0 1-6 0" transform="translate(1 1)"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m7 7-5 5 5 5m10-10 5 5-5 5M14 4l-4 16"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="m15 4 5 5M3 21l5-1L21 7l-5-5L3 15Z"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="m6 17 6-14 6 14M8 12h8M4 22h16"/></symbol>
+    <symbol id="i-marker" viewBox="0 0 24 24"><path d="m14 3 7 7-8 8-7-7zm-8 8-3 6 4 4 6-3M3 21h6"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 5m0 3v.1"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H5v20h14V7zm0 0v6h5M8 13h8m-8 4h6"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></symbol>
+    <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1-4 2 2 0 0 1 1-4h3a3 3 0 0 0 3-3c0-4-5-7-9-7Z"/><circle cx="7" cy="10" r=".7"/><circle cx="11" cy="7" r=".7"/><circle cx="16" cy="8" r=".7"/><circle cx="6" cy="15" r=".7"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></symbol>
+    <symbol id="i-wrap" viewBox="0 0 24 24"><path d="M3 6h18M3 12h14a4 4 0 0 1 0 8h-4m0 0 3-3m-3 3 3 3M3 18h5"/></symbol>
+  </svg>
+
+  <header class="app-header">
+    <a href="./" class="brand" aria-label="NIKO Editor ホーム"><span class="brand-mark">n<span></span></span><span>NIKO<span class="brand-sub">EDITOR</span></span></a>
+    <span class="header-divider"></span><span class="tagline">書くを、もっと気軽に。</span>
+    <div class="header-actions">
+      <button id="new-button" class="button quiet"><svg class="icon"><use href="#i-plus"/></svg><span>新規</span></button>
+      <button id="open-button" class="button outline"><svg class="icon"><use href="#i-folder"/></svg><span>開く</span></button>
+      <div class="save-group"><button id="save-button" class="button primary"><svg class="icon"><use href="#i-download"/></svg><span>保存する</span></button><button id="export-toggle" class="button primary split" aria-label="保存形式を選ぶ" aria-expanded="false" aria-controls="export-menu"><svg class="icon small"><use href="#i-chevron"/></svg></button>
+        <div id="export-menu" class="popover export-menu" hidden><div class="popover-caption">ファイルに書き出す</div><button data-export="md"><span class="file-badge">MD</span><span>Markdown<span class="menu-description">.md ファイル</span></span><svg class="icon"><use href="#i-download"/></svg></button><button data-export="html"><span class="file-badge html">&lt;/&gt;</span><span>HTML<span class="menu-description">.html ファイル・色もそのまま</span></span><svg class="icon"><use href="#i-download"/></svg></button><button data-export="txt"><span class="file-badge">TXT</span><span>テキスト<span class="menu-description">.txt ファイル・文字だけで保存</span></span><svg class="icon"><use href="#i-download"/></svg></button></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <div class="workspace-top"><div class="workspace-label"><span class="tiny-dot"></span>あなたのライティングスペース</div><button id="help-button" class="help-button"><svg class="icon"><use href="#i-help"/></svg>使い方</button></div>
+    <section class="editor-shell" aria-label="ドキュメントエディタ">
+      <div class="document-bar">
+        <div class="document-identity"><span class="document-icon"><svg class="icon"><use href="#i-file"/></svg></span><div><label class="sr-only" for="filename">ファイル名</label><input id="filename" value="はじめてのノート" maxlength="120" spellcheck="false"><div class="save-status"><span id="save-dot" class="save-dot"></span><span id="save-status">このブラウザに保存済み</span></div></div></div>
+        <div class="document-controls"><button id="find-button" class="tool" title="検索・置換（Ctrl+F / Ctrl+H）" aria-label="検索・置換" aria-expanded="false"><svg class="icon small"><use href="#i-search"/></svg></button><label class="format-select"><select id="format" aria-label="ファイル形式"><option value="md">Markdown</option><option value="html">HTML</option><option value="txt">テキスト</option></select><svg class="icon small"><use href="#i-chevron"/></svg></label><span class="control-divider"></span><div class="view-switch" role="group" aria-label="編集表示"><button data-view="visual" class="active" aria-pressed="true"><svg class="icon small"><use href="#i-edit"/></svg><span id="visual-view-label">かんたん編集</span></button><button data-view="source" aria-pressed="false"><svg class="icon small"><use href="#i-code"/></svg><span>ソース</span></button><button data-view="preview" aria-pressed="false" aria-label="プレビュー"><svg class="icon small"><use href="#i-eye"/></svg><span class="preview-label">プレビュー</span></button></div></div>
+      </div>
+
+      <div id="toolbar" class="toolbar" role="toolbar" aria-label="文字の書式">
+        <div class="toolbar-section history-tools"><button id="undo-button" class="tool" title="元に戻す（Ctrl+Z）" aria-label="元に戻す"><svg class="icon"><use href="#i-undo"/></svg></button><button id="redo-button" class="tool" title="やり直す（Ctrl+Shift+Z）" aria-label="やり直す"><svg class="icon"><use href="#i-redo"/></svg></button></div>
+        <span class="toolbar-divider"></span>
+        <label class="heading-select"><select id="heading" aria-label="段落スタイル"><option value="p">標準テキスト</option><option value="h1">大見出し</option><option value="h2">見出し</option><option value="h3">小見出し</option></select><svg class="icon small"><use href="#i-chevron"/></svg></label>
+        <span class="toolbar-divider"></span>
+        <div class="toolbar-section"><button class="tool" data-command="bold" title="太字（Ctrl+B）" aria-label="太字"><svg class="icon"><use href="#i-bold"/></svg></button><button class="tool" data-command="italic" title="斜体（Ctrl+I）" aria-label="斜体"><svg class="icon"><use href="#i-italic"/></svg></button><button class="tool" data-command="underline" title="下線（Ctrl+U）" aria-label="下線"><svg class="icon"><use href="#i-under"/></svg></button></div>
+        <span class="toolbar-divider"></span>
+        <div class="toolbar-section color-tools"><div class="color-control"><button id="text-color-button" class="tool color-button" aria-label="文字色" aria-expanded="false" aria-controls="color-popover"><span class="color-icon"><svg class="icon"><use href="#i-text"/></svg><i id="text-color-indicator"></i></span><span>文字色</span><svg class="icon tiny"><use href="#i-chevron"/></svg></button></div><div class="color-control"><button id="highlight-button" class="tool color-button" aria-label="背景色・マーカー" aria-expanded="false" aria-controls="color-popover"><span class="color-icon"><svg class="icon"><use href="#i-marker"/></svg><i id="highlight-indicator"></i></span><span>背景色</span><svg class="icon tiny"><use href="#i-chevron"/></svg></button></div></div>
+        <span class="toolbar-divider"></span>
+        <div class="toolbar-section"><button class="tool" data-command="insertUnorderedList" title="箇条書き" aria-label="箇条書き"><svg class="icon"><use href="#i-list"/></svg></button><button class="tool" data-command="insertOrderedList" title="番号付きリスト" aria-label="番号付きリスト"><svg class="icon"><use href="#i-ordered"/></svg></button><button class="tool" data-command="quote" title="引用" aria-label="引用"><svg class="icon"><use href="#i-quote"/></svg></button><button id="link-button" class="tool" title="リンクを追加（Ctrl+K）" aria-label="リンクを追加"><svg class="icon"><use href="#i-link"/></svg></button></div>
+        <div class="toolbar-end"><span id="toolbar-tip">選んで、色付け。</span><svg class="icon small"><use href="#i-palette"/></svg></div>
+      </div>
+
+      <div id="find-panel" class="find-panel" hidden><div class="find-row"><svg class="icon small"><use href="#i-search"/></svg><label class="sr-only" for="find-query">検索する文字</label><input id="find-query" placeholder="検索する文字" autocomplete="off"><label class="case-option"><input id="find-case" type="checkbox">大文字・小文字を区別</label><span id="find-count" role="status" aria-live="polite">0 件</span><button id="find-prev" class="tool small-tool" aria-label="前を検索" title="前を検索（Shift+Enter）">↑</button><button id="find-next" class="tool small-tool" aria-label="次を検索" title="次を検索（Enter）">↓</button><button id="find-close" class="tool small-tool" aria-label="検索を閉じる"><svg class="icon small"><use href="#i-close"/></svg></button></div><div class="find-row"><span class="replace-symbol">↳</span><label class="sr-only" for="replace-query">置換する文字</label><input id="replace-query" placeholder="置換する文字" autocomplete="off"><button id="replace-one" class="find-action">置換</button><button id="replace-all" class="find-action">すべて置換</button><span class="find-hint">Esc で閉じる</span></div></div>
+      <div id="editor-area" class="editor-area" data-view="visual">
+        <div class="canvas-label"><span id="canvas-label">DOCUMENT</span><span class="paper-size">自由に書いてみましょう</span></div>
+        <div id="visual-scroll" class="visual-scroll"><article id="visual-editor" class="document-paper prose" contenteditable="true" role="textbox" aria-multiline="true" aria-label="本文を編集" spellcheck="false" data-placeholder="ここから、書きはじめましょう。"></article></div>
+        <div id="source-panel" class="source-panel" hidden><div class="pane-heading"><span><svg class="icon small"><use href="#i-code"/></svg><span id="source-label">Markdown ソース</span></span><div class="source-options"><span id="source-extension">.md</span><button id="wrap-button" class="tool small-tool" aria-label="折り返し" title="行の折り返しを切り替える" aria-pressed="true"><svg class="icon small"><use href="#i-wrap"/></svg></button></div></div><div class="source-body"><div id="line-numbers" class="line-numbers" aria-hidden="true">1</div><textarea id="source-editor" aria-label="ソースを編集" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="ここに入力してください…"></textarea><div id="line-measure" class="line-measure" aria-hidden="true"></div></div></div>
+        <div id="preview-panel" class="preview-panel" hidden><div class="pane-heading"><span><svg class="icon small"><use href="#i-eye"/></svg>プレビュー</span><span>仕上がりを確認</span></div><iframe id="preview-frame" title="ドキュメントのプレビュー" sandbox="" referrerpolicy="no-referrer"></iframe></div>
+      </div>
+      <footer class="editor-footer"><div><span class="status-light"></span><span id="character-count">0 文字</span><span class="footer-separator">/</span><span id="reading-time">1 分で読めます</span><span id="cursor-position" hidden>1 行、1 列</span></div><div><span id="format-status">Markdown</span><span class="footer-separator">·</span><span>UTF-8</span><button id="focus-button" class="tool small-tool" title="集中モード" aria-label="集中モード" aria-pressed="false"><svg class="icon small"><use href="#i-expand"/></svg></button></div></footer>
+    </section>
+    <div class="workspace-bottom"><span><svg class="icon small"><use href="#i-shield"/></svg><span id="autosave-description">文章はこのブラウザに自動保存されます</span></span><span class="keyboard-hint"><kbd>Ctrl</kbd> + <kbd>S</kbd> 保存 <span>·</span> <kbd>Ctrl</kbd> + <kbd>F</kbd> 検索</span></div>
+  </main>
+
+  <div id="color-popover" class="popover color-popover" hidden><div class="palette-title"><span id="palette-title">文字色</span><button id="palette-close" class="tool small-tool" aria-label="色パレットを閉じる"><svg class="icon small"><use href="#i-close"/></svg></button></div><p>文字を選んで、好きな色をクリック</p><div id="color-swatches" class="color-swatches"></div><div class="custom-color-row"><label for="custom-color"><span class="custom-color-icon">＋</span>カスタムカラー</label><input id="custom-color" type="color" value="#287b62" aria-label="カスタムカラーを選ぶ"><button id="apply-custom-color" class="apply-color">適用</button></div><button id="clear-color" class="clear-color">色をリセット</button></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden><svg class="icon small"><use href="#i-check"/></svg><span></span></div>
+  <input id="file-input" type="file" accept=".md,.markdown,.html,.htm,.txt,text/markdown,text/html,text/plain" hidden>
+
+  <dialog id="help-dialog" class="dialog"><div class="dialog-title"><span class="dialog-brand">n.</span><button data-close-dialog class="tool" aria-label="閉じる"><svg class="icon"><use href="#i-close"/></svg></button></div><p class="eyebrow">WELCOME TO NIKO</p><h2>書く。選ぶ。色を付ける。</h2><p class="dialog-intro">むずかしい操作はありません。<br>いつものメモのように、書きはじめてください。</p><div class="help-step"><span>01</span><div><h3>見たまま、編集</h3><p>用紙をクリックして入力。文字を選ぶと、太字や見出しに変えられます。</p></div></div><div class="help-step"><span>02</span><div><h3>好きな色を、ひと塗り</h3><p>文字を選んで「文字色」「背景色」をクリック。選択がなければ、次に入力する文字に色が付きます。</p></div></div><div class="help-step"><span>03</span><div><h3>好きな形式で、保存</h3><p>Markdown・HTMLを選んで保存。ソースも直接編集できます。色はMarkdown内にもHTMLタグで残ります。</p></div></div><div class="help-note">自動保存はこのブラウザの中に保存されます。大切な文章は「保存する」からファイルにも残してください。HTMLのスクリプトや外部コンテンツは表示しません。</div><button data-close-dialog class="button primary dialog-start">書きはじめる<svg class="icon small"><use href="#i-edit"/></svg></button></dialog>
+  <dialog id="link-dialog" class="dialog compact-dialog"><div class="dialog-title"><h2>リンクを追加</h2><button data-close-dialog class="tool" aria-label="閉じる"><svg class="icon"><use href="#i-close"/></svg></button></div><form id="link-form"><label for="link-text">表示する文字</label><input id="link-text" required placeholder="リンクの名前"><label for="link-url">URL</label><input id="link-url" type="url" required placeholder="https://example.com"><div class="dialog-actions"><button type="button" data-close-dialog class="button outline">キャンセル</button><button type="submit" class="button primary">追加する</button></div></form></dialog>
+  <dialog id="replace-dialog" class="dialog compact-dialog"><div class="dialog-title"><h2 id="replace-title">新しいノートを作りますか？</h2></div><p>今の文章は置き換わります。必要なら、先にファイルへ保存してください。</p><div class="dialog-actions"><button id="replace-cancel" class="button quiet">キャンセル</button><button id="replace-save" class="button outline">保存して続ける</button><button id="replace-confirm" class="button primary">続ける</button></div></dialog>
+</body>
+</html>

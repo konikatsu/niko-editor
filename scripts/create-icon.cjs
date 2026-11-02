@@ -1,0 +1,26 @@
+'use strict';
+const fs = require('node:fs');
+const path = require('node:path');
+const {Resvg} = require('@resvg/resvg-js');
+const root = path.resolve(__dirname,'..');
+const svg = fs.readFileSync(path.join(root,'dist/favicon.svg'),'utf8');
+const sizes = [16,24,32,48,64,128,256];
+const images = sizes.map(size => new Resvg(svg,{fitTo:{mode:'width',value:size}}).render().asPng());
+const header = Buffer.alloc(6 + 16 * images.length);
+header.writeUInt16LE(1,2);
+header.writeUInt16LE(images.length,4);
+let offset = header.length;
+images.forEach((image,i) => {
+  const at = 6 + i * 16;
+  header[at] = sizes[i] === 256 ? 0 : sizes[i];
+  header[at+1] = header[at];
+  header.writeUInt16LE(1,at+4);
+  header.writeUInt16LE(32,at+6);
+  header.writeUInt32LE(image.length,at+8);
+  header.writeUInt32LE(offset,at+12);
+  offset += image.length;
+});
+fs.mkdirSync(path.join(root,'build'),{recursive:true});
+fs.writeFileSync(path.join(root,'build/icon.ico'),Buffer.concat([header,...images]));
+fs.writeFileSync(path.join(root,'build/icon.png'),images.at(-1));
+console.log('Windows application icons created.');

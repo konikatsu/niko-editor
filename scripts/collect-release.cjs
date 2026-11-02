@@ -1,0 +1,18 @@
+'use strict';
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+const root = path.resolve(__dirname,'..');
+const {version} = require('../package.json');
+const output = path.join(root,'release');
+fs.mkdirSync(output,{recursive:true});
+const target = path.join(root,'src-tauri/target/release');
+const portable = `NIKO-Editor-${version}-portable-x64.exe`;
+fs.copyFileSync(path.join(target,'niko-editor.exe'),path.join(output,portable));
+const installers = fs.readdirSync(path.join(target,'bundle/nsis')).filter(name => name.endsWith('.exe'));
+if (installers.length !== 1) throw new Error('Expected exactly one Windows installer');
+const setup = `NIKO-Editor-${version}-setup-x64.exe`;
+fs.copyFileSync(path.join(target,'bundle/nsis',installers[0]),path.join(output,setup));
+const checksums = [portable,setup].map(name => crypto.createHash('sha256').update(fs.readFileSync(path.join(output,name))).digest('hex') + '  ' + name).join('\n') + '\n';
+fs.writeFileSync(path.join(output,'SHA256SUMS.txt'),checksums);
+console.log('Windows release files collected in release/.');
