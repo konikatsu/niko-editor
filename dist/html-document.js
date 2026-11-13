@@ -72,9 +72,14 @@
       if (edits.length) this.setSource(patch(this.source,edits));
       return edits.length>0;
     }
-    createView() {
+    createView(bodyOnly=false) {
       const marker='data-niko-'+global.crypto.randomUUID().replace(/-/g,'');
-      const marked=this.nodes.map((node,i)=>replaceAttr(this.source,node,marker,String(i)));
+      const boundary=bodyOnly&&this.body?.sourceCodeLocation.endTag;
+      if(bodyOnly&&!boundary)throw Error('本文の開始・終了タグが必要です。HTMLソースで編集してください。');
+      const marked=this.nodes.flatMap((node,i)=>!boundary||node.sourceCodeLocation.startOffset<boundary.startOffset?[replaceAttr(this.source,node,marker,String(i))]:[]);
+      // The HTML parser otherwise reparents post-body nodes into body. They are
+      // editable in source mode; the visual body edits must never duplicate them.
+      if(boundary)marked.push({start:boundary.endOffset,end:this.source.length,text:'</html>'});
       const doc=new global.DOMParser().parseFromString(patch(this.source,marked),'text/html');
       const originals=new Map(); const protectedIds=[];
       for (const element of [...doc.querySelectorAll('['+marker+']')]) {
@@ -102,7 +107,7 @@
       // HTML parsing consumes the first LF of these elements. Compensate for
       // the second parse when the serialized view becomes iframe.srcdoc.
       for(const element of doc.querySelectorAll('textarea,pre,listing'))if(element.firstChild?.nodeType===3&&element.firstChild.data.startsWith('\n'))element.firstChild.data='\n'+element.firstChild.data;
-      return {html:'<!doctype html>'+doc.documentElement.outerHTML,marker,originals,protectedIds};
+      return {html:'<!doctype html>'+doc.documentElement.outerHTML,marker,originals,protectedIds,bodyOnly};
     }
     readFields(doc,view) {
       const values={};
@@ -113,6 +118,7 @@
       });return values;
     }
     commitView(doc,baseline,view) {
+      if(baseline.body.isEqualNode(doc.body))return false;
       if (!this.body?.sourceCodeLocation.endTag) throw Error('本文の開始・終了タグが必要です。HTMLソースで編集してください。');
       const selector='['+view.marker+']';
       const originalProtected=view.protectedIds.filter(id=>baseline.body.querySelector('['+view.marker+'="'+id+'"]'));
@@ -165,6 +171,8 @@
         else edits.push({start:loc.startOffset,end:loc.endOffset,text:serialize(after)});
       };
       diff(baseline.body,doc.body);
+      const bodyStart=this.body.sourceCodeLocation.startTag.endOffset,bodyEnd=this.body.sourceCodeLocation.endTag.startOffset;
+      if(edits.some(e=>e.start<bodyStart||e.end>bodyEnd))throw Error('本文の外側にまたがる編集は保存できません。HTMLソースで編集してください。');
       if(edits.length)this.setSource(patch(this.source,edits.map(e=>({...e,text:this.sourceLines(e.text)}))));
       return edits.length>0;
     }

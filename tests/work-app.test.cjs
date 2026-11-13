@@ -3,13 +3,14 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const {JSDOM}=require('jsdom');
 const tick=()=>new Promise(resolve=>setTimeout(resolve,20));
+async function waitFor(check){for(let i=0;i<100;i++){if(check())return;await tick();}throw Error('UI did not reach the expected state');}
 async function setup(){
   const dom=new JSDOM(fs.readFileSync('dist/work.html','utf8'),{runScripts:'outside-only',url:'https://editor.example/work.html'}),w=dom.window,frame=w.document.getElementById('document');
   Object.defineProperty(frame,'srcdoc',{set(html){const doc=frame.contentDocument;doc.open();doc.write(html);doc.close();setTimeout(()=>frame.dispatchEvent(new w.Event('load')),0);}});
   const saves=[];let response={name:'sample.html',path:'C:\\sample.html',sessionId:'selected-session',fingerprint:'v2'},reject=false;
   w.confirm=()=>true;w.desktopFiles={available:true,openWork:async()=>({name:'sample.html',path:'C:\\sample.html',sessionId:'selected-session',fingerprint:'v1',encoding:'UTF-8',content:'<!doctype html><html><head><style>body{color:#234}</style></head><body><h1>Sample</h1><input id="c" type="checkbox"><input id="n" type="number" value="invalid"><input id="t" value="old"><select id="s"><option>first</option><option>second</option></select><textarea id="a"></textarea><script>throw Error("must never run")</script></body></html>'}),saveWork:async request=>{saves.push(request);if(reject)throw Error('CONFLICT:external change');return response;}};
   for(const name of ['vendor/html-parser.js','html-document.js','work-app.js'])w.eval(fs.readFileSync('dist/'+name,'utf8'));
-  await tick();w.document.getElementById('open').click();await tick();
+  await waitFor(()=>frame.contentDocument.getElementById('task-1')&&w.document.getElementById('dirty').textContent==='新規');w.document.getElementById('open').click();await waitFor(()=>w.document.getElementById('file-name').textContent==='sample.html'&&w.document.getElementById('dirty').textContent==='保存済み'&&frame.contentDocument.getElementById('c'));
   return {w,dom,frame,saves,$:id=>w.document.getElementById(id),cancel:()=>response=null,fail:()=>reject=true};
 }
 test('native work save uses selected session and only changed fields, without running document scripts',async()=>{const a=await setup();const before=a.frame.srcdoc;assert.equal(a.$('dirty').textContent,'保存済み');a.$('save').click();await tick();assert.match(a.saves[0].content,/type="number" value="invalid"/);assert.ok(!a.saves[0].content.includes('selected='));const doc=a.frame.contentDocument;doc.getElementById('c').checked=true;doc.getElementById('t').value='new';doc.getElementById('t').dispatchEvent(new a.w.Event('input'));a.$('save').click();await tick();assert.equal(a.saves[1].sessionId,'selected-session');assert.equal(a.saves[1].fingerprint,'v2');assert.match(a.saves[1].content,/id="c" type="checkbox" checked=""/);assert.match(a.saves[1].content,/id="t" value="new"/);assert.equal(a.$('dirty').textContent,'保存済み');a.dom.window.close();});

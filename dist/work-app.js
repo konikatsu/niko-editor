@@ -58,7 +58,7 @@
     document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===mode));
     $('mode-help').textContent={work:'チェックと記入ができます。保存するとHTMLに残ります。',edit:'文字を選んで色付け。入力欄は作業モードで操作できます。',source:'HTML全体を編集できます。スクリプトは実行しません。'}[mode];
     if(mode==='source'){source.value=model.source;sourceInitial=source.value;sourceMixed=model.source.includes('\r\n')&&/(?:^|[^\r])\n/.test(model.source);indicators();return;}
-    view=model.createView();frame.onload=bindFrame;frame.srcdoc=view.html;
+    view=model.createView(mode==='edit');frame.onload=bindFrame;frame.srcdoc=view.html;
   }
   function command(name,value){
     if(mode!=='edit'||composing||busy)return;
