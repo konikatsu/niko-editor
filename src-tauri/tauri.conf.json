@@ -14,6 +14,7 @@
     "windows": [],
     "security": {
       "capabilities": ["main"],
+      "dangerousDisableAssetCspModification": ["style-src"],
       "csp": "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src ipc: http://ipc.localhost; frame-src 'self' blob:; base-uri 'none'; form-action 'none'"
     }
   },
