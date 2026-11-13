@@ -120,6 +120,8 @@
     commitView(doc,baseline,view) {
       if(baseline.body.isEqualNode(doc.body))return false;
       if (!this.body?.sourceCodeLocation.endTag) throw Error('本文の開始・終了タグが必要です。HTMLソースで編集してください。');
+      const bodyStart=this.body.sourceCodeLocation.startTag.endOffset,bodyEnd=this.body.sourceCodeLocation.endTag.startOffset;
+      const rawSlice=record=>{const loc=record.node.sourceCodeLocation;if(loc.startOffset<bodyStart||loc.endOffset>bodyEnd)throw Error('閉じタグが省略された要素が本文の外側にまたがっています。HTMLソースで閉じタグを補ってください。');return this.source.slice(loc.startOffset,loc.endOffset);};
       const selector='['+view.marker+']';
       const originalProtected=view.protectedIds.filter(id=>baseline.body.querySelector('['+view.marker+'="'+id+'"]'));
       const currentProtected=[...doc.body.querySelectorAll(selector)].map(n=>n.getAttribute(view.marker)).filter(id=>view.protectedIds.includes(id));
@@ -132,9 +134,9 @@
       const serialize=node=>{
         if (node.nodeType!==1) return node.nodeType===3 ? esc(node.textContent).replace(/&quot;/g,'"') : '<!--'+node.textContent+'-->';
         const id=node.getAttribute(view.marker), record=view.originals.get(id);
-        if (record && view.protectedIds.includes(id)) {const loc=record.node.sourceCodeLocation;return this.source.slice(loc.startOffset,loc.endOffset);}
+        if (record && view.protectedIds.includes(id)) return rawSlice(record);
         const original=record&&baseline.querySelector('['+view.marker+'="'+id+'"]');
-        if(original?.isEqualNode(node)){const loc=record.node.sourceCodeLocation;return this.source.slice(loc.startOffset,loc.endOffset);}
+        if(original?.isEqualNode(node))return rawSlice(record);
         const copy=node.cloneNode(false);copy.removeAttribute(view.marker);
         if(record) for(const [name,value] of record.attributes) {
           if (name===view.marker)continue;
@@ -171,7 +173,6 @@
         else edits.push({start:loc.startOffset,end:loc.endOffset,text:serialize(after)});
       };
       diff(baseline.body,doc.body);
-      const bodyStart=this.body.sourceCodeLocation.startTag.endOffset,bodyEnd=this.body.sourceCodeLocation.endTag.startOffset;
       if(edits.some(e=>e.start<bodyStart||e.end>bodyEnd))throw Error('本文の外側にまたがる編集は保存できません。HTMLソースで編集してください。');
       if(edits.length)this.setSource(patch(this.source,edits.map(e=>({...e,text:this.sourceLines(e.text)}))));
       return edits.length>0;
