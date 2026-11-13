@@ -18,7 +18,9 @@
       model.setSource(crlf?source.value.replace(/\n/g,'\r\n'):source.value);sourceInitial=source.value;
     }else if(viewReady&&view&&mode!=='source'){
       if(mode==='work'){
-        const values=model.readFields(frame.contentDocument,view);model.applyFields(values);
+        const values=model.readFields(frame.contentDocument,view),before=model.readFields(baseline,view);
+        const changed=Object.fromEntries(Object.entries(values).filter(([key,value])=>JSON.stringify(value)!==JSON.stringify(before[key])));
+        model.applyFields(changed);
       }else{model.commitView(frame.contentDocument,baseline,view);}
     }
     if(previous!==model.source){history.push(previous);if(history.length>80)history.shift();future=[];}

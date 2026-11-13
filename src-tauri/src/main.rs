@@ -1,12 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod file_policy;
 mod document_files;
+mod file_policy;
 mod work_commands;
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, Ordering};
-use tauri::WebviewWindow;
 use tauri::Manager;
+use tauri::WebviewWindow;
 use tauri_plugin_dialog::DialogExt;
 
 static DIALOG_OPEN: AtomicBool = AtomicBool::new(false);
@@ -42,13 +42,20 @@ struct SavedDocument {
 
 #[tauri::command]
 fn close_editor(window: WebviewWindow, auth: String) -> Result<(), String> {
-    window.state::<document_files::Documents>().authorize(&auth)?;
+    window
+        .state::<document_files::Documents>()
+        .authorize(&auth)?;
     window.destroy().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-async fn open_document(window: WebviewWindow, auth: String) -> Result<Option<OpenedDocument>, String> {
-    window.state::<document_files::Documents>().authorize(&auth)?;
+async fn open_document(
+    window: WebviewWindow,
+    auth: String,
+) -> Result<Option<OpenedDocument>, String> {
+    window
+        .state::<document_files::Documents>()
+        .authorize(&auth)?;
     if window.label() != "main" {
         return Err("エディタから操作してください。".into());
     }
@@ -86,7 +93,9 @@ async fn save_document(
     auth: String,
     request: SaveRequest,
 ) -> Result<Option<SavedDocument>, String> {
-    window.state::<document_files::Documents>().authorize(&auth)?;
+    window
+        .state::<document_files::Documents>()
+        .authorize(&auth)?;
     if window.label() != "main" {
         return Err("エディタから操作してください。".into());
     }
