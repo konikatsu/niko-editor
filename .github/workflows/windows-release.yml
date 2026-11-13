@@ -29,7 +29,8 @@ jobs:
           rustup toolchain install stable --profile minimal --component rustfmt
           rustup default stable
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
-      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked -- --nocapture
+        timeout-minutes: 8
       - run: npm run build:win
       - uses: actions/upload-artifact@v6
         with:
@@ -56,4 +57,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release create "$RELEASE_TAG" artifacts/*.exe artifacts/SHA256SUMS.txt --generate-notes --title "NIKO Editor $RELEASE_TAG"
+        run: |
+          release_options=()
+          if [[ "$RELEASE_TAG" == *-* ]]; then
+            release_options+=(--prerelease)
+          fi
+          gh release create "$RELEASE_TAG" artifacts/*.exe artifacts/SHA256SUMS.txt --generate-notes --title "NIKO Editor $RELEASE_TAG" "${release_options[@]}"

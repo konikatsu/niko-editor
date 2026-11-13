@@ -1,6 +1,6 @@
 [package]
 name = "niko-editor"
-version = "1.0.0"
+version = "1.1.0-beta.1"
 description = "A simple Markdown, HTML and text editor"
 authors = ["NIKO Editor contributors"]
 license = "MIT"
@@ -14,6 +14,10 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
+sha2 = "0.10"
+uuid = { version = "1", features = ["v4"] }
+url = "2"
+fs2 = "0.4"
 
 [profile.release]
 panic = "abort"
