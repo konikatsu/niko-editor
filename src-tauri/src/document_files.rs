@@ -321,6 +321,13 @@ fn replace_file(
             if at_path.len() != held.len() || at_path.modified().ok() != held.modified().ok() {
                 return Err("CONFLICT:保存直前に元ファイルが置き換えられました。".into());
             }
+            // ReplaceFile opens another handle internally. Keeping a byte-range
+            // lock here can block its stream/metadata merge on Windows/SMB.
+            FileExt::unlock(locked).map_err(|e| e.to_string())?;
+            let mut current_path = File::open(path).map_err(|e| e.to_string())?;
+            if fingerprint(&read_bounded(&mut current_path)?) != fingerprint(old) {
+                return Err("CONFLICT:元ファイルが保存直前に変更されました。".into());
+            }
         } else if path.exists() {
             return Err(
                 "CONFLICT:同名のファイルが新しく作成されました。保存先を選び直してください。"

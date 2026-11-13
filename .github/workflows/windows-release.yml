@@ -38,7 +38,8 @@ jobs:
             src-tauri/build.rs
           retention-days: 3
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
-      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked -- --nocapture
+        timeout-minutes: 8
       - run: npm run build:win
       - uses: actions/upload-artifact@v6
         with:
