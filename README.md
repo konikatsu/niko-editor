@@ -13,7 +13,7 @@ Windows 10/11（64bit）向けです。アプリの利用にNode.jsやRustのイ
 
 ## 使い方
 
-### HTML作業エディタ（開発中）
+### HTML作業エディタ（1.1試用版）
 
 `dist/work.html` で、既存のHTML全体のレイアウトを保ちながら編集します。デスクトップ版の初期画面もこのエディタです。
 
@@ -66,6 +66,8 @@ Windowsの成果物は `release/` に生成されます。`src-tauri/Cargo.lock`
 - `dist/app.js`：編集、色付け、履歴、自動保存、検索・置換。
 - `dist/editor-core.js`：形式変換、HTMLのサニタイズ、安全なプレビュー。
 - `src-tauri/src/main.rs`：Windowsアプリ、ファイル選択、保存。
+- `dist/work-app.js` / `dist/html-document.js`：HTML全体の作業・本文編集・原文への差分反映。
+- `src-tauri/src/document_files.rs`：ファイルセッション、バックアップ、競合検出、置換保存。
 - `src-tauri/src/file_policy.rs`：文字コード、ファイル形式・サイズの検証。
 
-プレビューをsandbox化し、Rustのファイル操作は選択ダイアログで指定したファイルに限定しています。汎用的なファイルシステム・シェルのAPIは画面へ公開しません。
+プレビューをsandbox化し、Rustのファイル操作は利用者がダイアログやパス入力で開いたファイルと、保存ダイアログで指定したファイルに限定しています。汎用的なファイルシステム・シェルのAPIは画面へ公開しません。元文書のJavaScriptは実行せず、すべてのネイティブコマンドは最上位の操作画面だけが持つ認証値を確認します。

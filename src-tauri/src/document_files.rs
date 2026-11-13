@@ -138,7 +138,8 @@ impl Documents {
         if file_policy::file_format(&path).is_none() {
             return Err("対応していないファイル形式です。".into());
         }
-        let path = fs::canonicalize(&path).map_err(|e| format!("ファイルの場所を確認できませんでした：{e}"))?;
+        let path = fs::canonicalize(&path)
+            .map_err(|e| format!("ファイルの場所を確認できませんでした：{e}"))?;
         let mut file = File::open(&path).map_err(|e| format!("ファイルを開けませんでした：{e}"))?;
         if !file.metadata().map_err(|e| e.to_string())?.is_file() {
             return Err("ファイルを選んでください。".into());
@@ -208,11 +209,25 @@ impl Documents {
             backup_path: backup.map(|p| p.to_string_lossy().into_owned()),
         })
     }
-    pub fn save_as(&self, path: PathBuf, content: &str, source_id: Option<&str>) -> Result<Saved, String> {
+    pub fn save_as(
+        &self,
+        path: PathBuf,
+        content: &str,
+        source_id: Option<&str>,
+    ) -> Result<Saved, String> {
         if content.len() > file_policy::MAX_SAVE_BYTES {
             return Err("保存できる本文は20 MBまでです。".into());
         }
-        let path = if path.exists() { fs::canonicalize(path).map_err(|e| e.to_string())? } else { fs::canonicalize(path.parent().ok_or("保存先のフォルダを確認してください。")?).map_err(|e| e.to_string())?.join(path.file_name().ok_or("ファイル名を確認してください。")?) };
+        let path = if path.exists() {
+            fs::canonicalize(path).map_err(|e| e.to_string())?
+        } else {
+            fs::canonicalize(
+                path.parent()
+                    .ok_or("保存先のフォルダを確認してください。")?,
+            )
+            .map_err(|e| e.to_string())?
+            .join(path.file_name().ok_or("ファイル名を確認してください。")?)
+        };
         let source_session = self
             .sessions
             .lock()
@@ -220,9 +235,11 @@ impl Documents {
             .get(source_id.unwrap_or(""))
             .cloned();
         if let Some(source) = &source_session {
-            if source.path == path { return self.save(source_id.unwrap(), &source.fingerprint, content); }
+            if source.path == path {
+                return self.save(source_id.unwrap(), &source.fingerprint, content);
+            }
         }
-        let source_encoding = source_session.map(|s|s.encoding).unwrap_or(Encoding::Utf8);
+        let source_encoding = source_session.map(|s| s.encoding).unwrap_or(Encoding::Utf8);
         let bytes = encode(content, source_encoding, false);
         if bytes.len() as u64 > file_policy::MAX_OPEN_BYTES {
             return Err("保存できるファイルは5 MBまでです。".into());
@@ -343,7 +360,14 @@ fn replace_file(
         Ok(())
     })();
     if let Err(error) = outcome {
-        return Err(format!("{error}\n復旧用の編集ファイル: {}\nバックアップ: {}",temp.display(),backup.as_ref().map(|p|p.display().to_string()).unwrap_or_default()));
+        return Err(format!(
+            "{error}\n復旧用の編集ファイル: {}\nバックアップ: {}",
+            temp.display(),
+            backup
+                .as_ref()
+                .map(|p| p.display().to_string())
+                .unwrap_or_default()
+        ));
     }
     drop(existing);
     if fs::read(path).map_err(|e| e.to_string())? != bytes {
@@ -367,30 +391,67 @@ fn replace_existing(temp: &Path, path: &Path, exists: bool) -> std::io::Result<(
             reserved: *mut std::ffi::c_void,
         ) -> i32;
     }
-    let destination = if exists {fs::canonicalize(path)?} else {fs::canonicalize(path.parent().ok_or_else(|| std::io::Error::other("Missing parent"))?)?.join(path.file_name().ok_or_else(|| std::io::Error::other("Missing filename"))?)};
-    let replaced: Vec<u16> = destination.as_os_str().encode_wide().chain(Some(0)).collect();
-    let replacement: Vec<u16> = fs::canonicalize(temp)?.as_os_str().encode_wide().chain(Some(0)).collect();
-    let rollback_path = destination.parent().unwrap().join(format!(".niko-rollback-{}.tmp",Uuid::new_v4()));
-    let rollback: Vec<u16> = rollback_path.as_os_str().encode_wide().chain(Some(0)).collect();
-    let ok = if !exists { unsafe { MoveFileW(replacement.as_ptr(),replaced.as_ptr()) } } else { unsafe {
-        ReplaceFileW(
-            replaced.as_ptr(),
-            replacement.as_ptr(),
-            rollback.as_ptr(),
-            0,
-            std::ptr::null_mut(),
-            std::ptr::null_mut(),
+    let destination = if exists {
+        fs::canonicalize(path)?
+    } else {
+        fs::canonicalize(
+            path.parent()
+                .ok_or_else(|| std::io::Error::other("Missing parent"))?,
+        )?
+        .join(
+            path.file_name()
+                .ok_or_else(|| std::io::Error::other("Missing filename"))?,
         )
-    } };
+    };
+    let replaced: Vec<u16> = destination
+        .as_os_str()
+        .encode_wide()
+        .chain(Some(0))
+        .collect();
+    let replacement: Vec<u16> = fs::canonicalize(temp)?
+        .as_os_str()
+        .encode_wide()
+        .chain(Some(0))
+        .collect();
+    let rollback_path = destination
+        .parent()
+        .unwrap()
+        .join(format!(".niko-rollback-{}.tmp", Uuid::new_v4()));
+    let rollback: Vec<u16> = rollback_path
+        .as_os_str()
+        .encode_wide()
+        .chain(Some(0))
+        .collect();
+    let ok = if !exists {
+        unsafe { MoveFileW(replacement.as_ptr(), replaced.as_ptr()) }
+    } else {
+        unsafe {
+            ReplaceFileW(
+                replaced.as_ptr(),
+                replacement.as_ptr(),
+                rollback.as_ptr(),
+                0,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+            )
+        }
+    };
     if ok == 0 {
-        let error=std::io::Error::last_os_error();
+        let error = std::io::Error::last_os_error();
         if !path.exists() && rollback_path.exists() {
             // No replace flag: never overwrite a concurrently created file.
-            unsafe { MoveFileW(rollback.as_ptr(),replaced.as_ptr()); }
+            unsafe {
+                MoveFileW(rollback.as_ptr(), replaced.as_ptr());
+            }
         }
-        Err(std::io::Error::other(format!("{error}; 復旧用の元ファイル: {}",rollback_path.display())))
+        Err(std::io::Error::other(format!(
+            "{error}; 復旧用の元ファイル: {}",
+            rollback_path.display()
+        )))
     } else {
-        if rollback_path.exists() { let _=fs::remove_file(&rollback_path); }
+        if rollback_path.exists() {
+            let _ = fs::remove_file(&rollback_path);
+        }
         Ok(())
     }
 }
@@ -452,27 +513,59 @@ mod tests {
     }
     #[test]
     fn all_encodings_and_mixed_newlines_survive_save_as_and_noop() {
-        for kind in [Encoding::Utf8, Encoding::Utf8Bom, Encoding::Utf16Le, Encoding::Utf16Be] {
-            let dir=folder();let original=dir.join("original.html");let copy=dir.join("copy.html");
-            let bytes=encode("<p>日本語🌱</p>\r\nline\nlast\r",kind,false);
-            fs::write(&original,&bytes).unwrap();let documents=Documents::new();let opened=documents.open(original.clone()).unwrap();
-            let saved=documents.save(&opened.session_id,&opened.fingerprint,&opened.content).unwrap();assert!(saved.backup_path.is_none());assert_eq!(fs::read(&original).unwrap(),bytes);
-            documents.save_as(copy.clone(),&opened.content,Some(&opened.session_id)).unwrap();assert_eq!(fs::read(copy).unwrap(),bytes);
+        for kind in [
+            Encoding::Utf8,
+            Encoding::Utf8Bom,
+            Encoding::Utf16Le,
+            Encoding::Utf16Be,
+        ] {
+            let dir = folder();
+            let original = dir.join("original.html");
+            let copy = dir.join("copy.html");
+            let bytes = encode("<p>日本語🌱</p>\r\nline\nlast\r", kind, false);
+            fs::write(&original, &bytes).unwrap();
+            let documents = Documents::new();
+            let opened = documents.open(original.clone()).unwrap();
+            let saved = documents
+                .save(&opened.session_id, &opened.fingerprint, &opened.content)
+                .unwrap();
+            assert!(saved.backup_path.is_none());
+            assert_eq!(fs::read(&original).unwrap(), bytes);
+            documents
+                .save_as(copy.clone(), &opened.content, Some(&opened.session_id))
+                .unwrap();
+            assert_eq!(fs::read(copy).unwrap(), bytes);
         }
     }
     #[cfg(windows)]
     #[test]
     fn replacement_denied_by_another_handle_keeps_both_files() {
         use std::os::windows::fs::OpenOptionsExt;
-        let dir=folder();let path=dir.join("original.html");let temp=dir.join("edit.tmp");fs::write(&path,b"old").unwrap();fs::write(&temp,b"new").unwrap();
-        let _held=OpenOptions::new().read(true).share_mode(1).open(&path).unwrap();
-        assert!(replace_existing(&temp,&path,true).is_err());assert_eq!(fs::read(&path).unwrap(),b"old");assert_eq!(fs::read(&temp).unwrap(),b"new");
+        let dir = folder();
+        let path = dir.join("original.html");
+        let temp = dir.join("edit.tmp");
+        fs::write(&path, b"old").unwrap();
+        fs::write(&temp, b"new").unwrap();
+        let _held = OpenOptions::new()
+            .read(true)
+            .share_mode(1)
+            .open(&path)
+            .unwrap();
+        assert!(replace_existing(&temp, &path, true).is_err());
+        assert_eq!(fs::read(&path).unwrap(), b"old");
+        assert_eq!(fs::read(&temp).unwrap(), b"new");
     }
     #[cfg(windows)]
     #[test]
     fn file_urls_and_unc_paths_resolve_percent_encoded_japanese() {
-        assert_eq!(parse_path("file://server/Share/%E6%97%A5%E6%9C%AC%E8%AA%9E/index.html").unwrap(),PathBuf::from("\\\\server\\Share\\日本語\\index.html"));
-        assert_eq!(parse_path("file:///C:/docs/note.html").unwrap(),PathBuf::from("C:\\docs\\note.html"));
+        assert_eq!(
+            parse_path("file://server/Share/%E6%97%A5%E6%9C%AC%E8%AA%9E/index.html").unwrap(),
+            PathBuf::from("\\\\server\\Share\\日本語\\index.html")
+        );
+        assert_eq!(
+            parse_path("file:///C:/docs/note.html").unwrap(),
+            PathBuf::from("C:\\docs\\note.html")
+        );
         assert!(parse_path("note.html").is_err());
     }
 }
