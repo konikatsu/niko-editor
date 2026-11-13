@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost; frame-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>NIKO Editor — HTML作業エディタ</title>
+  <link rel="stylesheet" href="work.css">
+  <script defer src="vendor/html-parser.js"></script>
+  <script defer src="html-document.js"></script>
+  <script defer src="desktop.js"></script>
+  <script defer src="work-app.js"></script>
+</head>
+<body>
+  <header>
+    <a class="brand" href="work.html"><span class="logo">N</span><span>NIKO <b>Editor</b><small>HTML作業エディタ</small></span></a>
+    <div class="file-title"><strong id="file-name">新しいドキュメント</strong><span id="file-path">ファイルを開いて、作業をはじめましょう</span></div>
+    <span id="dirty">未保存</span>
+    <button id="open">開く <kbd>Ctrl O</kbd></button>
+    <button id="save" class="primary">保存 <kbd>Ctrl S</kbd></button>
+    <button id="save-as">名前を付けて保存</button>
+  </header>
+  <div class="path-bar"><label for="path">パス・file:// URL</label><input id="path" placeholder="\\サーバー名\共有フォルダ\index.html"><button id="open-path">パスから開く</button><a id="notes" href="index.html">MD・テキスト編集 ↗</a></div>
+  <nav aria-label="編集モード">
+    <div class="modes"><button data-mode="work" aria-pressed="true">☑ 作業する</button><button data-mode="edit" aria-pressed="false">✎ 本文を編集</button><button data-mode="source" aria-pressed="false">〈 〉HTMLソース</button></div>
+    <span id="mode-help">チェックと記入ができます。保存するとHTMLに残ります。</span>
+    <button id="undo" title="元に戻す">↶ 戻す</button><button id="redo" title="やり直す">↷</button><button id="print">印刷</button>
+  </nav>
+  <div id="format" hidden>
+    <button data-command="bold" title="太字"><b>B</b></button><button data-command="italic" title="斜体"><i>I</i></button><button data-command="underline" title="下線"><u>U</u></button>
+    <span class="separator"></span><label>文字色 <input id="text-color" type="color" value="#d03a35"></label><label>マーカー <input id="highlight-color" type="color" value="#fff1a3"></label><button id="clear-format">書式を消す</button><span class="hint">文字を選んで、色を選択</span>
+  </div>
+  <aside id="notice">文書のスクリプトは実行しません。元の印刷・JSONボタン等は無効です。相対パスの画像・外部CSSは表示しません。保存した状態の再開はNIKO Editor内で確認してください。</aside>
+  <main>
+    <iframe id="document" title="HTMLドキュメント" sandbox="allow-same-origin allow-modals" referrerpolicy="no-referrer"></iframe>
+    <textarea id="source" spellcheck="false" aria-label="HTMLソース" hidden></textarea>
+  </main>
+  <footer><span id="status" role="status" aria-live="polite">準備できました</span><span id="progress">チェック 0 / 0</span><span id="encoding">UTF-8</span><span id="environment"></span></footer>
+  <input id="upload" type="file" accept=".html,.htm" hidden>
+</body>
+</html>

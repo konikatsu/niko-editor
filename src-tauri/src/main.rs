@@ -1,9 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod file_policy;
+mod document_files;
+mod work_commands;
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::WebviewWindow;
+use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 
 static DIALOG_OPEN: AtomicBool = AtomicBool::new(false);
@@ -38,7 +41,14 @@ struct SavedDocument {
 }
 
 #[tauri::command]
-async fn open_document(window: WebviewWindow) -> Result<Option<OpenedDocument>, String> {
+fn close_editor(window: WebviewWindow, auth: String) -> Result<(), String> {
+    window.state::<document_files::Documents>().authorize(&auth)?;
+    window.destroy().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn open_document(window: WebviewWindow, auth: String) -> Result<Option<OpenedDocument>, String> {
+    window.state::<document_files::Documents>().authorize(&auth)?;
     if window.label() != "main" {
         return Err("エディタから操作してください。".into());
     }
@@ -73,8 +83,10 @@ async fn open_document(window: WebviewWindow) -> Result<Option<OpenedDocument>, 
 #[tauri::command]
 async fn save_document(
     window: WebviewWindow,
+    auth: String,
     request: SaveRequest,
 ) -> Result<Option<SavedDocument>, String> {
+    window.state::<document_files::Documents>().authorize(&auth)?;
     if window.label() != "main" {
         return Err("エディタから操作してください。".into());
     }
@@ -115,18 +127,28 @@ async fn save_document(
 }
 
 fn main() {
+    let documents = document_files::Documents::new();
+    let auth = documents.auth.clone();
     tauri::Builder::default()
+        .manage(documents)
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![open_document, save_document])
-        .setup(|app| {
+        .invoke_handler(tauri::generate_handler![open_document, save_document, work_commands::open_work_document, work_commands::save_work_document, close_editor])
+        .on_window_event(|window,event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                if let Some(webview) = window.app_handle().get_webview_window("main") { let _ = webview.eval("window.dispatchEvent(new Event('niko-close-request'))"); }
+            }
+        })
+        .setup(move |app| {
             tauri::WebviewWindowBuilder::new(
                 app,
                 "main",
-                tauri::WebviewUrl::App("index.html".into()),
+                tauri::WebviewUrl::App("work.html".into()),
             )
             .title("NIKO Editor")
             .inner_size(1280.0, 900.0)
             .min_inner_size(780.0, 620.0)
+            .initialization_script(format!("if(window===window.top)Object.defineProperty(window,'__NIKO_AUTH__',{{value:'{}'}});", auth))
             .on_navigation(|url| {
                 url.scheme() == "tauri"
                     || url.scheme() == "about" && url.path() == "srcdoc"

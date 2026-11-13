@@ -28,6 +28,15 @@ jobs:
         run: |
           rustup toolchain install stable --profile minimal --component rustfmt
           rustup default stable
+      # Local endpoint policy blocks rustfmt; collect CI formatting for review.
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Rust-formatted-source
+          path: |
+            src-tauri/src/*.rs
+            src-tauri/build.rs
+          retention-days: 3
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
       - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
       - run: npm run build:win

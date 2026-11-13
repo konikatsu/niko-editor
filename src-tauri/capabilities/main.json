@@ -3,5 +3,5 @@
   "identifier": "main",
   "description": "Only native open/save dialogs are exposed to the editor.",
   "windows": ["main"],
-  "permissions": ["allow-open-document", "allow-save-document"]
+  "permissions": ["allow-open-document", "allow-save-document", "allow-open-work-document", "allow-save-work-document", "allow-close-editor"]
 }
